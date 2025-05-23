@@ -1,0 +1,42 @@
+.definitions-section {
+  margin-top: 1.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid #e9ecef;
+}
+
+.definitions-section h4 {
+  color: #667eea;
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin-bottom: 0.8rem;
+}
+
+.definitions-section ul {
+  list-style-type: disc;
+  margin-left: 1.5rem;
+  color: #5a6c7d;
+}
+
+.definitions-section li {
+  margin-bottom: 0.5rem;
+  line-height: 1.6;
+}
+
+.expand-button {
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  margin-top: 0.8rem;
+  text-transform: none;
+}
+
+.expand-button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
