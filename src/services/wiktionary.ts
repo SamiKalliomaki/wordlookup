@@ -50,6 +50,8 @@ class WiktionaryService {
     word: string,
     language: string = 'Portuguese'
   ): Promise<WordInfo | null> {
+    word = word.toLowerCase();
+
     const cacheKey = `${word}_${language}`;
 
     // Check cache first
