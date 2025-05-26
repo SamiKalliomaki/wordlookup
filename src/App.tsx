@@ -111,7 +111,7 @@ function App(): React.JSX.Element {
           <div className="search-input-wrapper">
             <input
               type="text"
-              placeholder="Enter a Portuguese word to find conjugations..."
+              placeholder="Enter a word to find conjugations, definitions, and more..."
               value={searchTerm}
               onChange={handleInputChange}
               className="search-input"
@@ -157,9 +157,7 @@ function App(): React.JSX.Element {
                   ))
                 ) : (
                   <div className="no-results">
-                    <p>
-                      No Portuguese entries found for "{wiktionaryResults.word}"
-                    </p>
+                    <p>No entries found for "{wiktionaryResults.word}"</p>
                   </div>
                 )}
               </div>
