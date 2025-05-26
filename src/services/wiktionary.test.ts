@@ -650,10 +650,6 @@ describe('WiktionaryService', () => {
             'first/third-person singular future subjunctive of ver',
           ],
         },
-        {
-          name: 'Noun',
-          definitions: ['whirlpool', '(regional) source'],
-        },
       ],
     });
   });

@@ -1,6 +1,7 @@
 // Wiktionary API module for fetching word information
 
 const WIKTIONARY_BASE_URL = 'https://en.wiktionary.org/w/api.php';
+const WIKTIONARY_PT_BASE_URL = 'https://pt.wiktionary.org/w/api.php';
 const CACHE_DURATION = 24 * 60 * 60 * 1000; // 24 hours
 
 export interface ConjugationForm {
@@ -52,13 +53,10 @@ class WiktionaryService {
    * @param language - Language code (default: 'Portuguese')
    * @returns Word information
    */
-  async getWordInfo(
-    word: string,
-    language: string = 'Portuguese'
-  ): Promise<WordInfo | null> {
+  async getWordInfo(word: string): Promise<WordInfo | null> {
     word = word.toLowerCase();
 
-    const cacheKey = `${word}_${language}`;
+    const cacheKey = `${word}`;
 
     // Check cache first
     if (this.cache.has(cacheKey)) {
@@ -69,7 +67,21 @@ class WiktionaryService {
     }
 
     try {
-      const result = await this.fetchFromWiktionary(word, language);
+      const [resultPt, resultEn] = await Promise.all([
+        this.fetchFromWiktionary(word, WIKTIONARY_BASE_URL, 'Portuguese'),
+        this.fetchFromWiktionary(word, WIKTIONARY_PT_BASE_URL, 'Inglês'),
+      ]);
+
+      const result = resultPt ?? {
+        word,
+        partsOfSpeech: [],
+      };
+      for (const partOfSpeech of resultEn?.partsOfSpeech ?? []) {
+        result.partsOfSpeech.push({
+          ...partOfSpeech,
+          name: 'Translation • ' + partOfSpeech.name,
+        });
+      }
 
       // Cache the result
       this.cache.set(cacheKey, {
@@ -92,9 +104,11 @@ class WiktionaryService {
    */
   private async fetchFromWiktionary(
     word: string,
+    url: string,
     language: string
   ): Promise<WordInfo | null> {
-    const pageData = await this.getPageContent(word);
+    console.log('fetching', word, url, language);
+    const pageData = await this.getPageContent(word, url);
     if (!pageData) {
       return null;
     }
@@ -147,7 +161,10 @@ class WiktionaryService {
    * @param title - Page title
    * @returns Page data with rendered content
    */
-  private async getPageContent(title: string): Promise<{
+  private async getPageContent(
+    title: string,
+    url: string
+  ): Promise<{
     title: string;
     content: string;
   } | null> {
@@ -158,7 +175,7 @@ class WiktionaryService {
       origin: '*',
     });
 
-    const response = await fetch(`${WIKTIONARY_BASE_URL}?${params}`);
+    const response = await fetch(`${url}?${params}`);
     const data = await response.json();
 
     if (data.error) {
@@ -191,11 +208,13 @@ function parseLanguageSections(doc: Document): Record<string, Element> {
     const sections: Record<string, Element> = {};
 
     // Find all language section headers - they are h2 elements with IDs that don't contain underscores
-    const h2Elements = doc.querySelectorAll('.mw-heading.mw-heading2 h2[id]');
+    const h1or2Elements = doc.querySelectorAll(
+      '.mw-heading.mw-heading1 h1[id], .mw-heading.mw-heading2 h2[id]'
+    );
 
-    for (let i = 0; i < h2Elements.length; i++) {
-      const h2 = h2Elements[i] as HTMLElement;
-      const languageName = h2.id;
+    for (let i = 0; i < h1or2Elements.length; i++) {
+      const h1or2 = h1or2Elements[i] as HTMLElement;
+      const languageName = h1or2.id;
 
       // Skip if this doesn't look like a language name (contains underscore or other patterns)
       if (
@@ -206,11 +225,12 @@ function parseLanguageSections(doc: Document): Record<string, Element> {
         continue;
       }
 
-      // Get the section div that contains this h2
-      const sectionDiv = h2.closest('.mw-heading.mw-heading2');
+      // Get the section div that contains this h1 / h2
+      const sectionDiv = h1or2.closest('.mw-heading');
       if (!sectionDiv) {
         continue;
       }
+      const sectionDivLevel = getHeadingLevel(sectionDiv);
 
       // Create a container element for this language section
       const sectionContainer = doc.createElement('div');
@@ -219,22 +239,11 @@ function parseLanguageSections(doc: Document): Record<string, Element> {
       let currentElement = sectionDiv.nextElementSibling;
 
       while (currentElement) {
-        // Check if this is the start of another language section
-        const isLanguageSection =
-          currentElement.classList?.contains('mw-heading') &&
-          currentElement.classList?.contains('mw-heading2');
+        const isH1 = currentElement.classList?.contains('mw-heading1');
+        const isH2 = currentElement.classList?.contains('mw-heading2');
 
-        if (isLanguageSection) {
-          // Check if the h2 inside has an ID that looks like a language name
-          const nextH2 = currentElement.querySelector('h2[id]') as HTMLElement;
-          if (
-            nextH2 &&
-            nextH2.id &&
-            !nextH2.id.includes('_') &&
-            !nextH2.id.includes('-')
-          ) {
-            break; // This is another language section, stop here
-          }
+        if (isH1 || (sectionDivLevel >= 2 && isH2)) {
+          break;
         }
 
         sectionContainer.appendChild(currentElement.cloneNode(true));
@@ -271,6 +280,27 @@ const kPartOfSpeechNames = [
   'Verb',
 ];
 
+const kPortuguesePartOfSpeechNames = [
+  // Portuguese Wiktionary names
+  'Abreviatura',
+  'Adjetivo',
+  'Advérbio',
+  'Artigo',
+  'Conjunção',
+  'Contração',
+  'Determinante',
+  'Expressão',
+  'Interjeição',
+  'Substantivo',
+  'Numeral',
+  'Partícula',
+  'Posposição',
+  'Preposição',
+  'Pronome',
+  'Substantivo próprio',
+  'Verbo',
+];
+
 /**
  * Extract part-of-speech sections from a language section
  * @param languageElement - The HTML element containing the language section
@@ -284,24 +314,30 @@ function extractPartOfSpeechSections(
 
     // Find all part-of-speech headers (h3 and h4 elements with IDs)
     const posHeaders = languageElement.querySelectorAll(
-      '.mw-heading.mw-heading3 h3[id], .mw-heading.mw-heading4 h4[id]'
+      '.mw-heading.mw-heading2 h2[id], .mw-heading.mw-heading3 h3[id], .mw-heading.mw-heading4 h4[id]'
     );
 
     for (let i = 0; i < posHeaders.length; i++) {
       const header = posHeaders[i] as HTMLElement;
-      const posName = header.textContent?.trim();
+      let posName = header.textContent?.trim();
 
       if (!posName) continue;
-      if (!kPartOfSpeechNames.includes(posName)) {
+      if (
+        !kPartOfSpeechNames.includes(posName) &&
+        !kPortuguesePartOfSpeechNames.includes(posName)
+      ) {
         continue;
+      }
+
+      if (kPortuguesePartOfSpeechNames.includes(posName)) {
+        posName =
+          kPartOfSpeechNames[kPortuguesePartOfSpeechNames.indexOf(posName)];
       }
 
       // Get the section div that contains this header
       const headerParent = header.closest('.mw-heading');
       if (!headerParent) continue;
-      const headerParentLevel = headerParent.classList.contains('mw-heading3')
-        ? 3
-        : 4;
+      const headerParentLevel = getHeadingLevel(headerParent);
 
       // Create a container element for this part-of-speech section
       const sectionContainer =
@@ -322,7 +358,11 @@ function extractPartOfSpeechSections(
           const isH4 = currentElement.classList?.contains('mw-heading4');
 
           // Stop if we hit another language section (h2) or same-level POS section
-          if (isH2 || isH3 || (headerParentLevel === 4 && isH4)) {
+          if (
+            (headerParentLevel >= 2 && isH2) ||
+            (headerParentLevel >= 3 && isH3) ||
+            (headerParentLevel >= 4 && isH4)
+          ) {
             break;
           }
         }
@@ -342,6 +382,14 @@ function extractPartOfSpeechSections(
     console.error('Error extracting part-of-speech sections:', error);
     return [];
   }
+}
+
+function getHeadingLevel(element: Element): number {
+  if (element.classList.contains('mw-heading1')) return 1;
+  if (element.classList.contains('mw-heading2')) return 2;
+  if (element.classList.contains('mw-heading3')) return 3;
+  if (element.classList.contains('mw-heading4')) return 4;
+  return 0;
 }
 
 /**
