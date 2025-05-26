@@ -20,7 +20,6 @@ const Definitions: React.FC<DefinitionsProps> = ({
 
   return (
     <div className="definitions-section">
-      <h4>Definitions</h4>
       <ul>
         {(isExpanded ? definitions : definitions.slice(0, 3)).map(
           (def, idx) => (
