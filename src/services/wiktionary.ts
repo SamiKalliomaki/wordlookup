@@ -252,12 +252,23 @@ function parseLanguageSections(doc: Document): Record<string, Element> {
 }
 
 const kPartOfSpeechNames = [
-  'Noun',
-  'Verb',
+  'Abbreviation',
   'Adjective',
   'Adverb',
+  'Article',
+  'Conjunction',
+  'Contraction',
+  'Determiner',
+  'Expression',
+  'Interjection',
+  'Noun',
+  'Numeral',
+  'Particle',
+  'Postposition',
   'Preposition',
   'Pronoun',
+  'Proper noun',
+  'Verb',
 ];
 
 /**
