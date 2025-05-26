@@ -41,7 +41,7 @@ export interface PartOfSpeechSection {
 }
 
 class WiktionaryService {
-  private cache: Map<string, CacheEntry<WordInfo | null>>;
+  private cache: Map<string, CacheEntry<WordInfo>>;
 
   constructor() {
     this.cache = new Map();
@@ -54,8 +54,14 @@ class WiktionaryService {
    * @returns Word information
    */
   async getWordInfo(word: string): Promise<WordInfo | null> {
-    word = word.toLowerCase();
+    let result = await this.getWordInfoInternal(word.toLowerCase());
+    if (result.partsOfSpeech.length === 0) {
+      result = await this.getWordInfoInternal(word);
+    }
+    return result;
+  }
 
+  async getWordInfoInternal(word: string): Promise<WordInfo> {
     const cacheKey = `${word}`;
 
     // Check cache first
