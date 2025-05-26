@@ -75,7 +75,7 @@ function App(): React.JSX.Element {
     // Set new timer
     debounceTimer.current = setTimeout(() => {
       handleSearch(term);
-    }, 100);
+    }, 500);
   };
 
   const handleInputChange = (e: ChangeEvent<HTMLInputElement>): void => {
