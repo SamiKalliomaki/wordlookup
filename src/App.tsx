@@ -115,6 +115,7 @@ function App(): React.JSX.Element {
               value={searchTerm}
               onChange={handleInputChange}
               className="search-input"
+              autoCapitalize="none"
             />
             {searchTerm && (
               <button onClick={clearSearch} className="clear-button">
