@@ -142,21 +142,19 @@ function App(): React.JSX.Element {
           {!isLoading && !error && wiktionaryResults && (
             <div className="results">
               <div className="wiktionary-results">
-                {Object.keys(wiktionaryResults.partsOfSpeech).length > 0 ? (
-                  Object.entries(wiktionaryResults.partsOfSpeech).map(
-                    ([partOfSpeech, posInfo]) => (
-                      <WordCard
-                        key={partOfSpeech}
-                        word={wiktionaryResults.word}
-                        partOfSpeech={partOfSpeech}
-                        posInfo={posInfo}
-                        isDefinitionsExpanded={
-                          expandedDefinitions[partOfSpeech] || false
-                        }
-                        onToggleDefinitionsExpanded={toggleDefinitionsExpanded}
-                      />
-                    )
-                  )
+                {wiktionaryResults.partsOfSpeech.length > 0 ? (
+                  wiktionaryResults.partsOfSpeech.map(posInfo => (
+                    <WordCard
+                      key={posInfo.name}
+                      word={wiktionaryResults.word}
+                      partOfSpeech={posInfo.name}
+                      posInfo={posInfo}
+                      isDefinitionsExpanded={
+                        expandedDefinitions[posInfo.name] || false
+                      }
+                      onToggleDefinitionsExpanded={toggleDefinitionsExpanded}
+                    />
+                  ))
                 ) : (
                   <div className="no-results">
                     <p>

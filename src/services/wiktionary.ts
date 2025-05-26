@@ -19,18 +19,24 @@ export interface ConjugationSection {
 }
 
 export interface PartOfSpeechInfo {
+  name: string;
   definitions: string[];
   conjugations?: ConjugationSection[];
 }
 
 export interface WordInfo {
   word: string;
-  partsOfSpeech: Record<string, PartOfSpeechInfo>;
+  partsOfSpeech: PartOfSpeechInfo[];
 }
 
 export interface CacheEntry<T = unknown> {
   data: T;
   timestamp: number;
+}
+
+export interface PartOfSpeechSection {
+  name: string;
+  element: Element;
 }
 
 class WiktionaryService {
@@ -106,16 +112,19 @@ class WiktionaryService {
     const posSections = extractPartOfSpeechSections(languageSection);
 
     // Extract conjugations and definitions from each part-of-speech section
-    const partsOfSpeech: Record<string, PartOfSpeechInfo> = {};
+    const partsOfSpeech: PartOfSpeechInfo[] = [];
 
-    for (const [posName, posElement] of Object.entries(posSections)) {
+    for (const posSection of posSections) {
       // Extract conjugations for this part of speech (mainly for verbs)
-      const posConjugations = extractConjugationsFromSection(posElement);
+      const posConjugations = extractConjugationsFromSection(
+        posSection.element
+      );
 
       // Extract definitions for this part of speech
-      const posDefinitions = extractDefinitionsFromSection(posElement);
+      const posDefinitions = extractDefinitionsFromSection(posSection.element);
 
       const posInfo: PartOfSpeechInfo = {
+        name: posSection.name,
         definitions: posDefinitions,
       };
 
@@ -124,7 +133,7 @@ class WiktionaryService {
         posInfo.conjugations = posConjugations;
       }
 
-      partsOfSpeech[posName] = posInfo;
+      partsOfSpeech.push(posInfo);
     }
 
     return {
@@ -253,13 +262,13 @@ const kPartOfSpeechNames = [
 /**
  * Extract part-of-speech sections from a language section
  * @param languageElement - The HTML element containing the language section
- * @returns Record of part-of-speech sections with their DOM elements
+ * @returns Array of part-of-speech sections with their names and DOM elements
  */
 function extractPartOfSpeechSections(
   languageElement: Element
-): Record<string, Element> {
+): PartOfSpeechSection[] {
   try {
-    const posSections: Record<string, Element> = {};
+    const posSections: PartOfSpeechSection[] = [];
 
     // Find all part-of-speech headers (h3 and h4 elements with IDs)
     const posHeaders = languageElement.querySelectorAll(
@@ -310,13 +319,16 @@ function extractPartOfSpeechSections(
         currentElement = currentElement.nextElementSibling;
       }
 
-      posSections[posName] = sectionContainer;
+      posSections.push({
+        name: posName,
+        element: sectionContainer,
+      });
     }
 
     return posSections;
   } catch (error) {
     console.error('Error extracting part-of-speech sections:', error);
-    return {};
+    return [];
   }
 }
 
