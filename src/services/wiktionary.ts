@@ -257,6 +257,7 @@ const kPartOfSpeechNames = [
   'Adjective',
   'Adverb',
   'Preposition',
+  'Pronoun',
 ];
 
 /**
