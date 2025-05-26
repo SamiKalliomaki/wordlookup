@@ -278,6 +278,9 @@ function extractPartOfSpeechSections(
       // Get the section div that contains this header
       const headerParent = header.closest('.mw-heading');
       if (!headerParent) continue;
+      const headerParentLevel = headerParent.classList.contains('mw-heading3')
+        ? 3
+        : 4;
 
       // Create a container element for this part-of-speech section
       const sectionContainer =
@@ -295,9 +298,10 @@ function extractPartOfSpeechSections(
           // Check the heading level
           const isH2 = currentElement.classList?.contains('mw-heading2');
           const isH3 = currentElement.classList?.contains('mw-heading3');
+          const isH4 = currentElement.classList?.contains('mw-heading4');
 
-          // Stop if we hit another language section (h2) or same-level POS section (h3)
-          if (isH2 || isH3) {
+          // Stop if we hit another language section (h2) or same-level POS section
+          if (isH2 || isH3 || (headerParentLevel === 4 && isH4)) {
             break;
           }
         }
